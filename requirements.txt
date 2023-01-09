@@ -3,3 +3,4 @@ numpy = 1.22.3
 open3d = 0.11.2
 igl = 2.2.1
 meshplot = 0.4.0
+pyTorch3d = 

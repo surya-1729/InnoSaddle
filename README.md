@@ -39,9 +39,18 @@ Libraries for 3D Machine Learning:
     Physically-based rendering (PBR)
     Scene reconstruction
 
+    Geometric primitives is the simplest geometric shape that the system can handle. The most "primitive" primitives are point and straight line segment, which were all that early vector graphics systems had. 
+
+    The set of geometric primitives is based on the dimension of the region being represented:
+
+        Point (0-dimensional), a single location with no height, width, or depth.
+        Line or curve (1-dimensional), having length but no width, although a linear feature may curve through a higher-dimensional space.
+        Planar surface or curved surface (2-dimensional), having length and width.
+        Volumetric region or solid (3-dimensional), having length, width, and depth.
+
 4. Mayavi
 
-    A cross-platform tool used for 3D scientific data visualization. It is open-source and is completely written in Python language. Mayavi provides a clean scripting interface to have an easy and interactive visualization of 3D data. Besides a clean scripting interface, this library also provides an object-oriented programming interface, one-liners, and many more other features.
+    A cross-platform tool used for 3D scientific data visualization. It is open-source and is completely written in Python language. Mayavi provides a clean scripting interface to have an easy and interactive visualization of 3D data. Besides a clean scripting interface, this library also provides an object-oriented programming interface, one-liners, and many more other features. 
 
     Best features:
 
