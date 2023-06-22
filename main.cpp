@@ -49,11 +49,8 @@ int main() {
     }
     
     // Initialize a 2D array to store the depth values
-
     std::vector<std::vector<float>> depthValues(width, std::vector<float>(height, 0.0));
     
-
-
     // Iterate over each face
     for (const auto& face : faces) {
         // Calculate the boundaries of the face (min x, max x, min y, max y)
@@ -80,9 +77,9 @@ int main() {
 
         int minYIndex = static_cast<int>(minY);
         int maxYIndex = static_cast<int>(maxY); 
-
-        for (int x = minXIndex; x < maxXIndex; ++x) {
-            for (int y = minYIndex; y < maxYIndex; ++y) {
+        // std::cout << minXIndex << " " << maxXIndex << " "  << minYIndex << " " << maxYIndex << "  " << std::endl;
+        for (int x = minXIndex; x < maxXIndex + 1; ++x) {
+            for (int y = minYIndex; y < maxYIndex + 1; ++y) {
                 // Check if the pixel center lies inside the triangle
                 float c1, c2;
                 if (in_trianglef(projectedVertices[face.vertexIndices[0]].x, projectedVertices[face.vertexIndices[0]].y,
@@ -96,17 +93,37 @@ int main() {
                                                         projectedVertices[face.vertexIndices[1]].z,
                                                         projectedVertices[face.vertexIndices[2]].z,
                                                         c1, c2);
-                    // Store the depth value in the depth values array
-                    
+                    // Store the depth value in the depth values array                    
                     depthValues[x][y] = interpolatedDepth;
-                    std::cout << "Depth at (" << x << ", " << y << "): " << depthValues[x][y] << std::endl;
                 }
             }
-                    
         }
- 
     }
 
+    // Initialize an array to store the pixel indices of maximum depth values in each row
+    std::vector<int> maxDepthIndices(width, 0);
+
+    // Iterate over each row of the depthValues array
+    for (int x = 0; x < width; ++x) {
+        float maxDepth = std::numeric_limits<float>::lowest();
+        int maxDepthIndex = 0;
+
+        for (int y = 0; y < height; ++y) {
+            // Check if the current depth value is greater than the maximum depth
+            if (depthValues[x][y] > maxDepth) {
+                maxDepth = depthValues[x][y];
+                maxDepthIndex = y;
+            }
+        }
+
+        // Store the pixel index with maximum depth value for the current row
+        maxDepthIndices[x] = maxDepthIndex;
+    }
+
+    // Print the pixel indices of maximum depth values in each row
+    for (int x = 0; x < width; ++x) {
+        std::cout << "Max depth index at row " << x << ": " << maxDepthIndices[x] << std::endl;
+    }
 
     return 0;
 }
