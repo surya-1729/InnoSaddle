@@ -2,6 +2,7 @@
 #include <vector>
 #include "helper.hpp"
 #include <limits>
+#include <opencv2/opencv.hpp>
 
 int main() {
 
@@ -100,6 +101,26 @@ int main() {
         }
     }
 
+
+    std::vector<std::vector<float>> normalizedDepthValues = normalizeDepthValues(depthValues);
+    std::vector<std::vector<float>> normalizedPixelValues = normalizedDepthValues;  // Create a new array for storing the multiplied values
+
+    // Multiply each value by 255 and store in normalizedPixelValues
+    for (auto& row : normalizedPixelValues) {
+        for (float& value : row) {
+            value *= 255;
+        }
+    }
+
+    // Print normalizedPixelValues
+    for (const auto& row : normalizedPixelValues) {
+        for (float value : row) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
+    }
+
+
     // Initialize an array to store the pixel indices of maximum depth values in each row
     std::vector<int> maxDepthIndices(width, 0);
 
@@ -125,5 +146,7 @@ int main() {
         std::cout << "Max depth index at row " << x << ": " << maxDepthIndices[x] << std::endl;
     }
 
+    // plotPixelImage(normalizedPixelValues);
     return 0;
 }
+

@@ -6,6 +6,8 @@
 #include <sstream>
 #include <vector>
 #include <limits>
+#include <algorithm>
+// #include <opencv2/opencv.hpp>
 
 struct Vec3f {
     float x, y, z;
@@ -82,8 +84,8 @@ std::pair<float, float> findMinMax(const std::vector<float>& n) {
 // Orthographic projection function
 Vec3f orthographicProjectionf(const Vec3f& vertex, float left, float right, float bottom, float top, int width, int height) {
         
-    float projectedX = ((vertex.x - left) / (right - left)*width) - 1;
-    float projectedY = ((vertex.y - bottom) / (top - bottom)*height) - 1;
+    float projectedX = ((vertex.x - left) / (right - left)*width);
+    float projectedY = ((vertex.y - bottom) / (top - bottom)*height);
     float depth = vertex.z; // Use the original z-coordinate as the depth value
     return Vec3f(projectedX, projectedY, depth);
    
@@ -137,4 +139,78 @@ float interpolatef(float depthP, float depthQ, float depthR, float c1, float c2)
     float interpolatedDepth = depthP + c1 * (depthQ - depthP) + c2 * (depthR - depthP);
     return interpolatedDepth;
 }
+
+// Function to find the non-zero minimum value in the depth values array
+float findNonZeroMin(const std::vector<std::vector<float>>& depthValues) {
+    float minDepth = std::numeric_limits<float>::max();
+
+    for (const auto& row : depthValues) {
+        for (float value : row) {
+            if (value > 0 && value < minDepth) {
+                minDepth = value;
+            }
+        }
+    }
+
+    return minDepth;
+}
+// Function to normalize the depth values array
+std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vector<float>>& depthValues) {
+    int width = depthValues.size();
+    int height = depthValues[0].size();
+
+    float minDepth = std::numeric_limits<float>::max();
+    float maxDepth = std::numeric_limits<float>::lowest();
+
+    for (const auto& row : depthValues) {
+        for (float value : row) {
+            if (value > 0 && value < minDepth) {
+                minDepth = value;
+            }
+            if (value > maxDepth) {
+                maxDepth = value;
+            }
+        }
+    }
+    
+    std::vector<std::vector<float>> normalizedDepthValues(width, std::vector<float>(height));
+
+    for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+            if (depthValues[x][y] > 0) {
+                normalizedDepthValues[x][y] = (depthValues[x][y] - minDepth) / (maxDepth - minDepth);
+            } else {
+                normalizedDepthValues[x][y] = 0;
+            }
+        }
+    }
+
+    return normalizedDepthValues;
+}
+
+// // Function to plot the pixel image
+// void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues) {
+//     // Image dimensions
+//     int width = normalizedPixelValues.size();
+//     int height = normalizedPixelValues[0].size();
+
+//     std::cout << "width " << width << std::endl;
+
+//     // Create an OpenCV Mat to store the pixel image
+//     cv::Mat pixelImage(height, width, CV_8UC1);
+
+//     // Generate the pixel image
+//     for (int x = 0; x < width; ++x) {
+//         for (int y = 0; y < height; ++y) {
+//             // Set the pixel value from the normalized pixel values array
+//             pixelImage.at<uchar>(y, x) = static_cast<uchar>(normalizedPixelValues[x][y]);
+//         }
+//     }
+
+//     // Display the pixel image
+//     cv::imshow("Pixel Image", pixelImage);
+//     cv::waitKey(0);
+// }
+
+
 
