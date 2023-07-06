@@ -8,6 +8,11 @@
 #include <limits>
 #include <algorithm>
 #include <opencv2/opencv.hpp>
+#include <ctime>
+#include <filesystem>
+#include <string>
+
+namespace fs = std::filesystem;
 
 struct Vec3f {
     float x, y, z;
@@ -188,41 +193,80 @@ std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vect
     return normalizedDepthValues;
 }
 
-// // Function to plot the pixel image
- void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues) {
-     // Image dimensions
-     int width = normalizedPixelValues.size();
-     int height = normalizedPixelValues[0].size();
 
-     std::cout << "width " << width << std::endl;
 
-     // Create an OpenCV Mat to store the pixel image
-     cv::Mat pixelImage(height, width, CV_8UC1);
 
-     // Generate the pixel image
-     for (int x = 0; x < width; ++x) {
-         for (int y = 0; y < height; ++y) {
-             // Set the pixel value from the normalized pixel values array
+void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::string& fileNameWithoutExtension) {
+    // Image dimensions
+    int width = normalizedPixelValues.size();
+    int height = normalizedPixelValues[0].size();
+
+    // Create an OpenCV Mat to store the pixel image
+    cv::Mat pixelImage(height, width, CV_8UC1);
+
+    // Generate the pixel image
+    for (int x = 0; x < width; ++x) {
+        for (int y = 0; y < height; ++y) {
+            // Set the pixel value from the normalized pixel values array
             pixelImage.at<uchar>(y, x) = static_cast<uchar>(normalizedPixelValues[x][y]);
-         }
-     }
-     
-     // Generate the file name
+        }
+    }
+
+    // Generate the file name with date and time
     std::time_t t = std::time(nullptr);
     char buffer[80];
-    std::strftime(buffer, sizeof(buffer), "picture_%Y-%m-%d_%H-%M-%S.png", std::localtime(&t));
-    std::string fileName = buffer;
+    std::strftime(buffer, sizeof(buffer), "_%Y-%m-%d_%H-%M-%S", std::localtime(&t));
+    std::string dateTime = buffer;
+
+    // Create the folder name based on the file name and date-time
+    std::string folderName = fileNameWithoutExtension + dateTime;
+
+    // Create the directory
+    std::string folderPath = "pictures/" + folderName;
+    fs::create_directory(folderPath);
+
+    // Generate the complete file name for the pixel image
+    std::string pixelFileName = fileNameWithoutExtension + ".png";
 
     // Save the pixel image
-    std::string filePath = "pictures/" + fileName;
-    cv::imwrite(filePath, pixelImage);
+    std::string pixelFilePath = folderPath + "/" + pixelFileName;
+    cv::imwrite(pixelFilePath, pixelImage);
 
-    std::cout << "Image saved as: " << filePath << std::endl;
+    std::cout << "Pixel image saved as: " << pixelFilePath << std::endl;
 
-     // Display the pixel image
-     cv::imshow("Pixel Image", pixelImage);
-     cv::waitKey(0);
- }
+    // Perform Canny edge detection
+    cv::Mat cannyImage;
+    cv::Canny(pixelImage, cannyImage, 50, 150);
+
+    // Generate the complete file name for the canny image
+    std::string cannyFileName = fileNameWithoutExtension + "_canny.png";
+
+    // Save the canny image
+    std::string cannyFilePath = folderPath + "/" + cannyFileName;
+    cv::imwrite(cannyFilePath, cannyImage);
+
+    std::cout << "Canny image saved as: " << cannyFilePath << std::endl;
+
+    // Perform Sobel operator
+    cv::Mat sobelImage;
+    cv::Sobel(pixelImage, sobelImage, CV_8U, 1, 1);
+
+    // Generate the complete file name for the sobel image
+    std::string sobelFileName = fileNameWithoutExtension + "_sobel.png";
+
+    // Save the sobel image
+    std::string sobelFilePath = folderPath + "/" + sobelFileName;
+    cv::imwrite(sobelFilePath, sobelImage);
+
+    std::cout << "Sobel image saved as: " << sobelFilePath << std::endl;
+
+    // Display the pixel image, canny image, and sobel image
+    cv::imshow("Pixel Image", pixelImage);
+    cv::imshow("Canny Image", cannyImage);
+    cv::imshow("Sobel Image", sobelImage);
+    cv::waitKey(0);
+}
+
 
 
 

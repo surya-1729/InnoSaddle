@@ -2,12 +2,18 @@
 #include <vector>
 #include "helper.hpp"
 #include <limits>
+#include <filesystem>
+#include <string>
 // #include <opencv2/opencv.hpp>
 
 int main() {
 
     // Path to the OBJ file
     std::string filePath = "./data/processed_data/0005_vanille.obj";
+
+    // Extract the file name without extension
+    std::filesystem::path path(filePath);
+    std::string fileNameWithoutExtension = path.stem().string();
 
     // Variables to store vertices and faces
     std::vector<Vec3f> vertices;
@@ -120,6 +126,7 @@ int main() {
     }
     */
 
+
     // Initialize an array to store the pixel indices of maximum depth values in each row
     std::vector<int> maxDepthIndices(width, 0);
 
@@ -146,7 +153,7 @@ int main() {
         std::cout << "Max depth index at row " << x << ": " << maxDepthIndices[x] << std::endl;
     }
     */
-    plotPixelImage(normalizedPixelValues);
+    plotPixelImage(normalizedPixelValues, fileNameWithoutExtension);
     return 0;
 }
 
