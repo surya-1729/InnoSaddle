@@ -9,7 +9,7 @@
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0005_vanille.obj";
+    std::string filePath = "./data/processed_data/0002_letti.obj";
 
     // Extract the file name without extension
     std::filesystem::path path(filePath);
@@ -117,15 +117,6 @@ int main() {
         }
     }
 
-    /* // Print normalizedPixelValues
-    for (const auto& row : normalizedPixelValues) {
-        for (float value : row) {
-            std::cout << value << " ";
-        }
-        std::cout << std::endl;
-    }
-    */
-
 
     // Initialize an array to store the pixel indices of maximum depth values in each row
     std::vector<int> maxDepthIndices(width, 0);
@@ -147,12 +138,6 @@ int main() {
         maxDepthIndices[x] = maxDepthIndex;
     }
 
-    /*
-    // Print the pixel indices of maximum depth values in each row
-    for (int x = 0; x < width; ++x) {
-        std::cout << "Max depth index at row " << x << ": " << maxDepthIndices[x] << std::endl;
-    }
-    */
     plotPixelImage(normalizedPixelValues, fileNameWithoutExtension);
     return 0;
 }

@@ -247,25 +247,69 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
 
     std::cout << "Canny image saved as: " << cannyFilePath << std::endl;
 
-    // Perform Sobel operator
-    cv::Mat sobelImage;
-    cv::Sobel(pixelImage, sobelImage, CV_8U, 1, 1);
+    // Perform Sobel operator in the x-direction
+    cv::Mat sobelXImage;
+    cv::Sobel(pixelImage, sobelXImage, CV_8U, 1, 0);
 
-    // Generate the complete file name for the sobel image
-    std::string sobelFileName = fileNameWithoutExtension + "_sobel.png";
+    // Generate the complete file name for the sobel x-image
+    std::string sobelXFileName = fileNameWithoutExtension + "_sobel_x.png";
 
-    // Save the sobel image
-    std::string sobelFilePath = folderPath + "/" + sobelFileName;
-    cv::imwrite(sobelFilePath, sobelImage);
+    // Save the sobel x-image
+    std::string sobelXFilePath = folderPath + "/" + sobelXFileName;
+    cv::imwrite(sobelXFilePath, sobelXImage);
 
-    std::cout << "Sobel image saved as: " << sobelFilePath << std::endl;
+    std::cout << "Sobel x-image saved as: " << sobelXFilePath << std::endl;
 
-    // Display the pixel image, canny image, and sobel image
+    // Perform Sobel operator in the y-direction
+    cv::Mat sobelYImage;
+    cv::Sobel(pixelImage, sobelYImage, CV_8U, 0, 1);
+
+    // Generate the complete file name for the sobel y-image
+    std::string sobelYFileName = fileNameWithoutExtension + "_sobel_y.png";
+
+    // Save the sobel y-image
+    std::string sobelYFilePath = folderPath + "/" + sobelYFileName;
+    cv::imwrite(sobelYFilePath, sobelYImage);
+
+    std::cout << "Sobel y-image saved as: " << sobelYFilePath << std::endl;
+
+    // Assign colors based on intensity values for Sobel x-image
+    cv::Mat sobelXColorImage;
+    cv::applyColorMap(sobelXImage, sobelXColorImage, cv::COLORMAP_HOT);
+
+    // Generate the complete file name for the colored Sobel x-image
+    std::string sobelXColorFileName = fileNameWithoutExtension + "_sobel_x_color.png";
+
+    // Save the colored Sobel x-image
+    std::string sobelXColorFilePath = folderPath + "/" + sobelXColorFileName;
+    cv::imwrite(sobelXColorFilePath, sobelXColorImage);
+
+    std::cout << "Colored Sobel x-image saved as: " << sobelXColorFilePath << std::endl;
+
+    // Assign colors based on intensity values for Sobel y-image
+    cv::Mat sobelYColorImage;
+    cv::applyColorMap(sobelYImage, sobelYColorImage, cv::COLORMAP_HOT);
+
+    // Generate the complete file name for the colored Sobel y-image
+    std::string sobelYColorFileName = fileNameWithoutExtension + "_sobel_y_color.png";
+
+    // Save the colored Sobel y-image
+    std::string sobelYColorFilePath = folderPath + "/" + sobelYColorFileName;
+    cv::imwrite(sobelYColorFilePath, sobelYColorImage);
+
+    std::cout << "Colored Sobel y-image saved as: " << sobelYColorFilePath << std::endl;
+
+    // Display the pixel image, canny image, sobel x-image, and sobel y-image
     cv::imshow("Pixel Image", pixelImage);
     cv::imshow("Canny Image", cannyImage);
-    cv::imshow("Sobel Image", sobelImage);
+    cv::imshow("Sobel X-Image", sobelXImage);
+    cv::imshow("Sobel Y-Image", sobelYImage);
+    cv::imshow("Colored Sobel X-Image", sobelXColorImage);
+    cv::imshow("Colored Sobel Y-Image", sobelYColorImage);
     cv::waitKey(0);
 }
+
+
 
 
 
