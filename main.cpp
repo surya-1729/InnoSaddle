@@ -2,12 +2,12 @@
 #include <vector>
 #include "helper.hpp"
 #include <limits>
-#include <opencv2/opencv.hpp>
+// #include <opencv2/opencv.hpp>
 
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0002_letti.obj";
+    std::string filePath = "./data/processed_data/0001_fred.obj";
 
     // Variables to store vertices and faces
     std::vector<Vec3f> vertices;
@@ -68,10 +68,9 @@ int main() {
             minX = std::min(minX, projectedVertex.x);
             maxX = std::max(maxX, projectedVertex.x);
             minY = std::min(minY, projectedVertex.y);
-            maxY = std::max(maxY, projectedVertex.y);
+	    maxY = std::max(maxY, projectedVertex.y);	
         }
 
-        // std::cout << minX << " " << maxX << " "  << minY << " " << maxY << "  " << std::endl;
 
         int minXIndex = static_cast<int>(minX);
         int maxXIndex = static_cast<int>(maxX); 
@@ -112,14 +111,14 @@ int main() {
         }
     }
 
-    // Print normalizedPixelValues
+    /* // Print normalizedPixelValues
     for (const auto& row : normalizedPixelValues) {
         for (float value : row) {
             std::cout << value << " ";
         }
         std::cout << std::endl;
     }
-
+    */
 
     // Initialize an array to store the pixel indices of maximum depth values in each row
     std::vector<int> maxDepthIndices(width, 0);
@@ -141,12 +140,13 @@ int main() {
         maxDepthIndices[x] = maxDepthIndex;
     }
 
+    /*
     // Print the pixel indices of maximum depth values in each row
     for (int x = 0; x < width; ++x) {
         std::cout << "Max depth index at row " << x << ": " << maxDepthIndices[x] << std::endl;
     }
-
-    // plotPixelImage(normalizedPixelValues);
+    */
+    plotPixelImage(normalizedPixelValues);
     return 0;
 }
 
