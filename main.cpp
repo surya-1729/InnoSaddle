@@ -7,7 +7,7 @@
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0001_fred.obj";
+    std::string filePath = "./data/processed_data/0005_vanille.obj";
 
     // Variables to store vertices and faces
     std::vector<Vec3f> vertices;
