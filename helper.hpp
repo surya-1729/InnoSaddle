@@ -343,33 +343,53 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     std::string laplacianFilePath = folderPath + "/" + laplacianFileName;
     cv::imwrite(laplacianFilePath, laplacianImage);
 
-    // Determine the maximum width and height among the three images
-    int maxWidth = std::max(sobelXImage.cols, std::max(sobelYImage.cols, sobelXYImage.cols));
-    int maxHeight = std::max(sobelXImage.rows, std::max(sobelYImage.rows, sobelXYImage.rows));
+    // Determine the maximum width and height among the images
+    int maxWidth = std::max(sobelXImage.cols, std::max(sobelYImage.cols, std::max(sobelXYImage.cols, std::max(laplacianImage.cols, std::max(cannyImage.cols, contrastImage.cols)))));
+    int maxHeight = std::max(sobelXImage.rows, std::max(sobelYImage.rows, std::max(sobelXYImage.rows, std::max(laplacianImage.rows, std::max(cannyImage.rows, contrastImage.rows)))));
 
-    // Create a canvas to hold the combined images
-    cv::Mat canvas(maxHeight, 3 * maxWidth, CV_8UC1, cv::Scalar(255));
+
+    // Create a canvas to hold the combined images and legends
+    int canvasWidth = 3 * maxWidth;
+    int canvasHeight = 2 * maxHeight + 100; // Add space for legends
+    cv::Mat canvas(canvasHeight, canvasWidth, CV_8UC1, cv::Scalar(255));
 
     // Copy the Sobel x-image to the canvas
     cv::Mat canvasROI_X = canvas(cv::Rect(0, 0, sobelXImage.cols, sobelXImage.rows));
     sobelXImage.copyTo(canvasROI_X);
+    cv::putText(canvas, "Sobel X", cv::Point(450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
     // Copy the Sobel y-image to the canvas
     cv::Mat canvasROI_Y = canvas(cv::Rect(maxWidth, 0, sobelYImage.cols, sobelYImage.rows));
     sobelYImage.copyTo(canvasROI_Y);
+    cv::putText(canvas, "Sobel Y", cv::Point(maxWidth + 450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
     // Copy the Sobel xy-image to the canvas
     cv::Mat canvasROI_XY = canvas(cv::Rect(2 * maxWidth, 0, sobelXYImage.cols, sobelXYImage.rows));
     sobelXYImage.copyTo(canvasROI_XY);
+    cv::putText(canvas, "Sobel XY", cv::Point(2 * maxWidth + 450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
-    cv::Mat combinedImage = canvas.clone();
+    // Copy the laplacian image to the canvas
+    cv::Mat canvasROI_lap = canvas(cv::Rect(0, maxHeight + 100, laplacianImage.cols, laplacianImage.rows));
+    laplacianImage.copyTo(canvasROI_lap);
+    cv::putText(canvas, "Laplacian", cv::Point(450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+
+    // Copy the Canny image to the canvas
+    cv::Mat canvasROI_canny = canvas(cv::Rect(maxWidth, maxHeight + 100, cannyImage.cols, cannyImage.rows));
+    cannyImage.copyTo(canvasROI_canny);
+    cv::putText(canvas, "Canny", cv::Point(maxWidth + 450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+
+    // Copy the Contrast image to the canvas
+    cv::Mat canvasROI_contrast = canvas(cv::Rect(2 * maxWidth, maxHeight + 100, contrastImage.cols, contrastImage.rows));
+    contrastImage.copyTo(canvasROI_contrast);
+    cv::putText(canvas, "Contrast", cv::Point(2 * maxWidth + 450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
     // Generate the complete file name for the combined image
     std::string combinedFileName = fileNameWithoutExtension + "_combined.png";
 
     // Save the combined image
     std::string combinedFilePath = folderPath + "/" + combinedFileName;
-    cv::imwrite(combinedFilePath, combinedImage);
+    cv::imwrite(combinedFilePath, canvas);
+
 }
 
 
