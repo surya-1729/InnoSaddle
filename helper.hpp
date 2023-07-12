@@ -343,15 +343,33 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     std::string laplacianFilePath = folderPath + "/" + laplacianFileName;
     cv::imwrite(laplacianFilePath, laplacianImage);
 
+    // Determine the maximum width and height among the three images
+    int maxWidth = std::max(sobelXImage.cols, std::max(sobelYImage.cols, sobelXYImage.cols));
+    int maxHeight = std::max(sobelXImage.rows, std::max(sobelYImage.rows, sobelXYImage.rows));
 
-    // Display the pixel image, canny image, sobel x-image, and sobel y-image
-    /*cv::imshow("Pixel Image", pixelImage);
-    cv::imshow("Canny Image", cannyImage);
-    cv::imshow("Sobel X-Image", sobelXImage);
-    cv::imshow("Sobel Y-Image", sobelYImage);
-    cv::imshow("Colored Sobel X-Image", sobelXColorImage);
-    cv::imshow("Colored Sobel Y-Image", sobelYColorImage);
-    cv::waitKey(0);*/
+    // Create a canvas to hold the combined images
+    cv::Mat canvas(maxHeight, 3 * maxWidth, CV_8UC1, cv::Scalar(255));
+
+    // Copy the Sobel x-image to the canvas
+    cv::Mat canvasROI_X = canvas(cv::Rect(0, 0, sobelXImage.cols, sobelXImage.rows));
+    sobelXImage.copyTo(canvasROI_X);
+
+    // Copy the Sobel y-image to the canvas
+    cv::Mat canvasROI_Y = canvas(cv::Rect(maxWidth, 0, sobelYImage.cols, sobelYImage.rows));
+    sobelYImage.copyTo(canvasROI_Y);
+
+    // Copy the Sobel xy-image to the canvas
+    cv::Mat canvasROI_XY = canvas(cv::Rect(2 * maxWidth, 0, sobelXYImage.cols, sobelXYImage.rows));
+    sobelXYImage.copyTo(canvasROI_XY);
+
+    cv::Mat combinedImage = canvas.clone();
+
+    // Generate the complete file name for the combined image
+    std::string combinedFileName = fileNameWithoutExtension + "_combined.png";
+
+    // Save the combined image
+    std::string combinedFilePath = folderPath + "/" + combinedFileName;
+    cv::imwrite(combinedFilePath, combinedImage);
 }
 
 
