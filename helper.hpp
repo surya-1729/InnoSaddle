@@ -11,6 +11,10 @@
 #include <ctime>
 #include <filesystem>
 #include <string>
+#include <CGAL/IO/read_off_points.h>
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
 
 namespace fs = std::filesystem;
 
@@ -22,6 +26,22 @@ struct Vec3f {
 struct Face {
     std::vector<int> vertexIndices;
 };
+
+
+typedef CGAL::Simple_cartesian<double> K;
+typedef CGAL::Surface_mesh<K::Point_3> Mesh;
+typedef Mesh::Vertex_index Vertex_index;
+
+void printFaces(const Mesh& mesh) {
+    for(const auto& face : mesh.faces()) {
+        std::cout << "Face: ";
+        for(const auto& vertex : vertices_around_face(mesh.halfedge(face), mesh)) {
+            std::cout << vertex << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 
 void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std::vector<Face>& faces) {
     // Open the OBJ file
@@ -62,6 +82,79 @@ void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std:
 #endif  // OBJ_PARSER_HPP
 
 
+void createMesh(const std::vector<Vec3f>& vertices, const std::vector<Face>& faces, Mesh& mesh) {
+    std::vector<Vertex_index> vertex_indices;
+
+    // Add vertices to the mesh
+    for (const Vec3f& vertex : vertices) {
+        vertex_indices.push_back(mesh.add_vertex(K::Point_3(vertex.x, vertex.y, vertex.z)));
+    }
+
+    // Add faces to the mesh
+    for (const Face& face : faces) {
+        std::vector<Vertex_index> face_indices;
+        for (int index : face.vertexIndices) {
+            face_indices.push_back(vertex_indices[index]);
+        }
+        mesh.add_face(face_indices);
+    }
+}
+
+void writeMeshToFile(const Mesh& mesh, const std::string& filePath) {
+    std::ofstream file(filePath, std::ios::out);
+    if (!file) {
+        std::cerr << "Could not open file for writing: " << filePath << std::endl;
+        return;
+    }
+
+    if (!CGAL::IO::write_OFF(file, mesh)) {
+        std::cerr << "Error writing to file: " << filePath << std::endl;
+    }
+}
+
+
+void readOffFile(const std::string& filePath, std::vector<Vec3f>& vertices, std::vector<Face>& faces) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filePath << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::getline(file, line);  // Skip 'OFF' line
+
+    // Read number of vertices, faces, and edges
+    std::getline(file, line);
+    std::istringstream iss(line);
+    int numVertices, numFaces, numEdges;
+    iss >> numVertices >> numFaces >> numEdges;
+
+    // Read vertices
+    for (int i = 0; i < numVertices; i++) {
+        std::getline(file, line);
+        std::istringstream iss(line);
+        float x, y, z;
+        iss >> x >> y >> z;
+        vertices.emplace_back(x, y, z);
+    }
+
+    // Read faces
+    for (int i = 0; i < numFaces; i++) {
+        std::getline(file, line);
+        std::istringstream iss(line);
+        int numVerticesInFace;
+        iss >> numVerticesInFace;
+        Face face;
+        for (int j = 0; j < numVerticesInFace; j++) {
+            int vertexIndex;
+            iss >> vertexIndex;
+            face.vertexIndices.push_back(vertexIndex);
+        }
+        faces.push_back(face);
+    }
+}
+
+
 // MinMax function to get minimum and maximum values of a vector
 std::pair<float, float> findMinMax(const std::vector<float>& n) {
     if (n.empty()) {
@@ -90,26 +183,26 @@ std::pair<float, float> findMinMax(const std::vector<float>& n) {
 Vec3f orthographicProjectionf(const Vec3f& vertex, float left, float right, float bottom, float top, int width, int height) {
         
     float projectedX = ((vertex.x - left) / (right - left)*width);
-    float projectedY = ((vertex.y - bottom) / (top - bottom)*height);
-    float depth = vertex.z; // Use the original z-coordinate as the depth value
-    return Vec3f(projectedX, projectedY, depth);
+    float projectedZ = ((vertex.z - bottom) / (top - bottom)*height);
+    float depth = vertex.y; // Use the original z-coordinate as the depth value
+    return Vec3f(projectedX, depth, projectedZ);
    
 }
 
-bool in_trianglef(double PX, double PY, double QX, double QY,
-                  double RX, double RY, double SX, double SY,
+bool in_trianglef(double PX, double PZ, double QX, double QZ,
+                  double RX, double RZ, double SX, double SZ,
                   float* c1, float* c2)
 {
     double z1, z2, n1, n2;
 
-    z1 = (RX * (SY - PY) + PX * (RY - SY) + SX * (PY - RY));
-    n1 = (RX * (QY - PY) + PX * (RY - QY) + QX * (PY - RY));
+    z1 = (RX * (SZ - PZ) + PX * (RZ - SZ) + SX * (PZ - RZ));
+    n1 = (RX * (QZ - PZ) + PX * (RZ - QZ) + QX * (PZ - RZ));
 
     if ((z1 > 0.0 && n1 < 0.0) || (z1 < 0.0 && n1 > 0.0))
         return false;
 
-    z2 = (QX * (SY - PY) + PX * (QY - SY) + SX * (PY - QY));
-    n2 = (QX * (RY - PY) + PX * (QY - RY) + RX * (PY - QY));
+    z2 = (QX * (SZ - PZ) + PX * (QZ - SZ) + SX * (PZ - QZ));
+    n2 = (QX * (RZ - PZ) + PX * (QZ - RZ) + RX * (PZ - QZ));
 
     if ((z2 > 0.0 && n2 < 0.0) || (z2 < 0.0 && n2 > 0.0))
         return false;
@@ -145,20 +238,21 @@ float interpolatef(float depthP, float depthQ, float depthR, float c1, float c2)
     return interpolatedDepth;
 }
 
-// Function to find the non-zero minimum value in the depth values array
+/*// Function to find the non-zero minimum value in the depth values array
 float findNonZeroMin(const std::vector<std::vector<float>>& depthValues) {
     float minDepth = std::numeric_limits<float>::max();
 
     for (const auto& row : depthValues) {
         for (float value : row) {
-            if (value > 0 && value < minDepth) {
+            if (value != 0 && value < minDepth) {
                 minDepth = value;
             }
         }
     }
 
     return minDepth;
-}
+}*/
+
 // Function to normalize the depth values array
 std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vector<float>>& depthValues) {
     int width = depthValues.size();
@@ -169,23 +263,26 @@ std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vect
 
     for (const auto& row : depthValues) {
         for (float value : row) {
-            if (value > 0 && value < minDepth) {
+            if (value != 0 && value < minDepth) {
                 minDepth = value;
             }
-            if (value > maxDepth) {
+            if (value != 0 && value > maxDepth) {
                 maxDepth = value;
             }
         }
     }
     
+    //std::cout << "Minimum depth value: " << minDepth << std::endl;
+    //std::cout << "Maximum depth value: " << maxDepth << std::endl;
+
     std::vector<std::vector<float>> normalizedDepthValues(width, std::vector<float>(height));
 
     for (int x = 0; x < width; ++x) {
-        for (int y = 0; y < height; ++y) {
-            if (depthValues[x][y] > 0) {
-                normalizedDepthValues[x][y] = (depthValues[x][y] - minDepth) / (maxDepth - minDepth);
+        for (int z = 0; z < height; ++z) {
+            if (depthValues[x][z] != 0) {
+                normalizedDepthValues[x][z] = (depthValues[x][z] - minDepth) / (maxDepth - minDepth);
             } else {
-                normalizedDepthValues[x][y] = 0;
+                normalizedDepthValues[x][z] = 0;
             }
         }
     }
@@ -206,9 +303,9 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
 
     // Generate the pixel image
     for (int x = 0; x < width; ++x) {
-        for (int y = 0; y < height; ++y) {
+        for (int z = 0; z < height; ++z) {
             // Set the pixel value from the normalized pixel values array
-            pixelImage.at<uchar>(y, x) = static_cast<uchar>(normalizedPixelValues[x][y]);
+            pixelImage.at<uchar>(z, x) = static_cast<uchar>(normalizedPixelValues[x][z]);
         }
     }
 
