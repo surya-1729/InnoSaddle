@@ -11,10 +11,10 @@
 #include <ctime>
 #include <filesystem>
 #include <string>
-#include <CGAL/IO/read_off_points.h>
+/*#include <CGAL/IO/read_off_points.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
-#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>*/
 
 namespace fs = std::filesystem;
 
@@ -27,7 +27,7 @@ struct Face {
     std::vector<int> vertexIndices;
 };
 
-
+/*
 typedef CGAL::Simple_cartesian<double> K;
 typedef CGAL::Surface_mesh<K::Point_3> Mesh;
 typedef Mesh::Vertex_index Vertex_index;
@@ -41,7 +41,7 @@ void printFaces(const Mesh& mesh) {
         std::cout << std::endl;
     }
 }
-
+*/
 
 void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std::vector<Face>& faces) {
     // Open the OBJ file
@@ -82,7 +82,7 @@ void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std:
 #endif  // OBJ_PARSER_HPP
 
 
-void createMesh(const std::vector<Vec3f>& vertices, const std::vector<Face>& faces, Mesh& mesh) {
+/*void createMesh(const std::vector<Vec3f>& vertices, const std::vector<Face>& faces, Mesh& mesh) {
     std::vector<Vertex_index> vertex_indices;
 
     // Add vertices to the mesh
@@ -153,6 +153,8 @@ void readOffFile(const std::string& filePath, std::vector<Vec3f>& vertices, std:
         faces.push_back(face);
     }
 }
+
+*/
 
 
 // MinMax function to get minimum and maximum values of a vector

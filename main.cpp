@@ -16,12 +16,14 @@ int main() {
     std::string fileNameWithoutExtension = path.stem().string();
 
     // Variables to store vertices and faces
-    std::vector<Vec3f> createvertices;
-    std::vector<Face> createfaces;
+    std::vector<Vec3f> vertices;
+    std::vector<Face> faces;
 
+    
     // Read the OBJ file
-    readObjFile(filePath, createvertices, createfaces);
+    readObjFile(filePath, vertices, faces);
 
+    /*
     std::cout << "Number of faces: " << createfaces.size() << std::endl;
 
     Mesh mesh;
@@ -73,7 +75,7 @@ int main() {
     std::vector<Face> faces;
 
     // Read the OFF file
-    readOffFile(outputFilePath, vertices, faces);
+    readOffFile(outputFilePath, vertices, faces);*/
 
     //// Parameters for orthographic projection
 
@@ -128,7 +130,7 @@ int main() {
             minX = std::min(minX, projectedVertex.x);
             maxX = std::max(maxX, projectedVertex.x);
             minZ = std::min(minZ, projectedVertex.z);
-	    maxZ = std::max(maxZ, projectedVertex.z);	
+        maxZ = std::max(maxZ, projectedVertex.z);   
         }
 
 
@@ -224,4 +226,3 @@ int main() {
     plotPixelImage(normalizedPixelValues, fileNameWithoutExtension);
     return 0;
 }
-
