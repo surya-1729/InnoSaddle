@@ -378,7 +378,19 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
 
 
 
-    // Create a blank image for the profile visualization
+    for(int z = 0; z < width; ++z) std::cout << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
+    
+    std::string filePath = folderPath + "/" + fileNameWithoutExtension + "_values.txt";
+    std::ofstream outFile(filePath);
+
+    for(int z = 0; z < width; ++z) {
+        outFile << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
+    }
+
+    outFile.close();
+
+
+         // Create a blank image for the profile visualization
     cv::Mat profileImage(height, width, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
 
     // Determine the maximum and minimum values from normalizedPixelValues
@@ -391,12 +403,17 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     }
     double rangePixelValue = maxPixelValue - minPixelValue;
 
+    double scalingFactor = 0.8; // You can adjust this value as needed
+
     // Draw the profile line
     for (int z = 0; z < width - 1; ++z) {
-        int startY = height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height) / rangePixelValue;
-        int endY = height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height) / rangePixelValue;
+        int startY = height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height * scalingFactor) / rangePixelValue;
+        int endY = height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height * scalingFactor) / rangePixelValue;
         cv::line(profileImage, cv::Point(z, startY), cv::Point(z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
     }
+
+
+
 
     // Save the profile visualization
     std::string profilePath = folderPath + "/" + fileNameWithoutExtension + "_profile.png";
@@ -404,41 +421,50 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
 
 
 
-
-    for(int z = 0; z < width; ++z) std::cout << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
-    
-    std::string filePath = folderPath + "/" + fileNameWithoutExtension + "_values.txt";
-    std::ofstream outFile(filePath);
-
-    for(int z = 0; z < width; ++z) {
-        outFile << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
-    }
-
-    outFile.close();
+    // Increase padding for the graph
+    int graphPaddingTop = 50;
+    int graphPaddingBottom = 100;
+    int graphPaddingLeft = 50;
+    int graphPaddingRight = 50;
 
     // Create graph visualization with additional space for axis labels
-    cv::Mat graphImage(height + 100, width, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
+    cv::Mat graphImage(height + graphPaddingTop + graphPaddingBottom, width + graphPaddingLeft + graphPaddingRight, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
 
-    // Draw the same profile line
+    // Draw the profile line
     for (int z = 0; z < width - 1; ++z) {
-        int startY = height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height) / rangePixelValue;
-        int endY = height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height) / rangePixelValue;
-        cv::line(graphImage, cv::Point(z, startY), cv::Point(z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
+        int startY = graphPaddingTop + height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height * scalingFactor) / rangePixelValue;
+        int endY = graphPaddingTop + height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height * scalingFactor) / rangePixelValue;
+        cv::line(graphImage, cv::Point(graphPaddingLeft + z, startY), cv::Point(graphPaddingLeft + z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
     }
 
     // Draw axis lines
-    cv::line(graphImage, cv::Point(0, height), cv::Point(width, height), cv::Scalar(0, 0, 0), 2);
-    cv::line(graphImage, cv::Point(0, 0), cv::Point(0, height), cv::Scalar(0, 0, 0), 2);
+    cv::line(graphImage, cv::Point(graphPaddingLeft, graphPaddingTop + height), cv::Point(graphPaddingLeft + width, graphPaddingTop + height), cv::Scalar(0, 0, 0), 2);
+    cv::line(graphImage, cv::Point(graphPaddingLeft, graphPaddingTop), cv::Point(graphPaddingLeft, graphPaddingTop + height), cv::Scalar(0, 0, 0), 2);
+
+    // Add tick marks and grid lines (example for 10 ticks)
+    int numTicks = 10;
+    for (int i = 0; i <= numTicks; ++i) {
+        int x = graphPaddingLeft + (width * i) / numTicks;
+        int y = graphPaddingTop + (height * i) / numTicks;
+
+        // Vertical grid line
+        cv::line(graphImage, cv::Point(x, graphPaddingTop), cv::Point(x, graphPaddingTop + height), cv::Scalar(200, 200, 200), 1);
+
+        // Horizontal grid line
+        cv::line(graphImage, cv::Point(graphPaddingLeft, y), cv::Point(graphPaddingLeft + width, y), cv::Scalar(200, 200, 200), 1);
+    }
 
     // Add axis labels
-    cv::putText(graphImage, "z (index)", cv::Point(width / 2, height + 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
-    cv::putText(graphImage, "y depth", cv::Point(10, height / 2), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
+    cv::putText(graphImage, "z (index)", cv::Point(graphPaddingLeft + width / 2, graphPaddingTop + height + 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
+    cv::putText(graphImage, "y depth", cv::Point(10, graphPaddingTop + height / 2), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
 
     // Save the graph visualization
     std::string graphPath = folderPath + "/" + fileNameWithoutExtension + "_graph.png";
     cv::imwrite(graphPath, graphImage);
 
-    
+    // ...
+
+
 
 }
 
