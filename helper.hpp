@@ -293,203 +293,156 @@ std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vect
 }
 
 
+std::vector<std::pair<int, uchar>> getMaxPixelValuesAndIndicesInRows(const std::string& imagePath) {
+    // Load the image
+    cv::Mat img = cv::imread(imagePath, cv::IMREAD_GRAYSCALE);
+
+    std::vector<std::pair<int, uchar>> maxPixelValuesAndIndices;
+
+    for(int i = 0; i < img.rows; i++) {
+        double minVal, maxVal;
+        cv::Point minLoc, maxLoc;
+        cv::minMaxLoc(img.row(i), &minVal, &maxVal, &minLoc, &maxLoc);
+        maxPixelValuesAndIndices.push_back({maxLoc.x, static_cast<uchar>(maxVal)});
+    }
+    return maxPixelValuesAndIndices;
+}
 
 
-void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::string& fileNameWithoutExtension) {
+
+
+
+void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::vector<int>& maxDepthIndices, const std::string& fileNameWithoutExtension) {
+    
+
+
+
     // Image dimensions
     int width = normalizedPixelValues.size();
     int height = normalizedPixelValues[0].size();
 
-    // Create an OpenCV Mat to store the pixel image
-    cv::Mat pixelImage(height, width, CV_8UC1);
+    // Create an OpenCV Mat to store the grayscale pixel image
+    cv::Mat grayscaleImage(height, width, CV_8UC1);
 
     // Generate the pixel image
     for (int x = 0; x < width; ++x) {
         for (int z = 0; z < height; ++z) {
-            // Set the pixel value from the normalized pixel values array
-            pixelImage.at<uchar>(z, x) = static_cast<uchar>(normalizedPixelValues[x][z]);
+            grayscaleImage.at<uchar>(z, x) = static_cast<uchar>(normalizedPixelValues[x][z]);
         }
     }
 
+    // Create a color image by converting the grayscale image
+    cv::Mat pixelImage;
+    cv::cvtColor(grayscaleImage, pixelImage, cv::COLOR_GRAY2BGR);
+
+    // Draw the red line with some thickness by connecting adjacent points
+    for (int z = 0; z < width - 1; ++z) {
+        cv::line(pixelImage, cv::Point(z, maxDepthIndices[z]), cv::Point(z + 1, maxDepthIndices[z + 1]), cv::Scalar(0, 0, 255), 3);
+    }
+
+    // Create Mat to store the ridge line
+    cv::Mat ridgeLineImage(height, width, CV_8UC1, cv::Scalar(0));
+    for (int z = 0; z < width; ++z) {
+        ridgeLineImage.at<uchar>(maxDepthIndices[z], z) = 255;
+    }
+
+    // Apply Gaussian blur to the ridge line image
+    cv::GaussianBlur(ridgeLineImage, ridgeLineImage, cv::Size(5, 5), 2.0, 2.0);
+
+    // Threshold the blurred image to make it binary again
+    cv::threshold(ridgeLineImage, ridgeLineImage, 127, 255, cv::THRESH_BINARY);
+
+
+    // Draw the ridge line with some thickness by connecting adjacent points
+    for (int z = 0; z < width - 1; ++z) {
+        cv::line(ridgeLineImage, cv::Point(z, maxDepthIndices[z]), cv::Point(z + 1, maxDepthIndices[z + 1]), cv::Scalar(255), 3);
+    }
+
+   
     // Generate the file name with date and time
     std::time_t t = std::time(nullptr);
     char buffer[80];
     std::strftime(buffer, sizeof(buffer), "_%Y-%m-%d_%H-%M-%S", std::localtime(&t));
     std::string dateTime = buffer;
 
+    // Create a folder for saving images
+
     // Create the folder name based on the file name and date-time
     std::string folderName = fileNameWithoutExtension + dateTime;
-
-    // Create the directory
     std::string folderPath = "pictures/" + folderName;
     fs::create_directory(folderPath);
 
-    // Generate the complete file name for the pixel image
-    std::string pixelFileName = fileNameWithoutExtension + ".png";
-
-    // Save the pixel image
-    std::string pixelFilePath = folderPath + "/" + pixelFileName;
-    cv::imwrite(pixelFilePath, pixelImage);
-
-    // Perform Gaussian blur
-    cv::Mat blurredImage;
-    cv::GaussianBlur(pixelImage, blurredImage, cv::Size(5, 5), 0);
-
-    // Generate the complete file name for the blurred image
-    std::string blurredFileName = fileNameWithoutExtension + "_blurred.png";
-
-    // Save the blurred image
-    std::string blurredFilePath = folderPath + "/" + blurredFileName;
-    cv::imwrite(blurredFilePath, blurredImage);
-
-    // Perform Contrast increase to blurred Image
-    cv::Mat contrastImage;
-    cv::equalizeHist(blurredImage, contrastImage);
-
-    // Generate the complete file name for the contrast image
-    std::string contrastFileName = fileNameWithoutExtension + "_contrast.png";
-
-    // Save the contrast image
-    std::string contrastFilePath = folderPath + "/" + contrastFileName;
-    cv::imwrite(contrastFilePath, contrastImage);
+    // Save the original pixel image
+    cv::imwrite(folderPath + "/" + fileNameWithoutExtension + ".png", pixelImage);
 
 
-    // Perform Canny edge detection
-    cv::Mat cannyImage;
-    cv::Canny(contrastImage, cannyImage, 50, 150);
-
-    // Generate the complete file name for the canny image
-    std::string cannyFileName = fileNameWithoutExtension + "_canny.png";
-
-    // Save the canny image
-    std::string cannyFilePath = folderPath + "/" + cannyFileName;
-    cv::imwrite(cannyFilePath, cannyImage);
-
-    // Perform Sobel operator in the x-direction
-    cv::Mat sobelXImage;
-    cv::Sobel(contrastImage, sobelXImage, CV_8U, 1, 0);
-
-    // Generate the complete file name for the sobel x-image
-    std::string sobelXFileName = fileNameWithoutExtension + "_sobel_x.png";
-
-    // Save the sobel x-image
-    std::string sobelXFilePath = folderPath + "/" + sobelXFileName;
-    cv::imwrite(sobelXFilePath, sobelXImage);
-
-    // Perform Sobel operator in the y-direction
-    cv::Mat sobelYImage;
-    cv::Sobel(contrastImage, sobelYImage, CV_8U, 0, 1);
-
-    // Generate the complete file name for the sobel y-image
-    std::string sobelYFileName = fileNameWithoutExtension + "_sobel_y.png";
-
-    // Save the sobel y-image
-    std::string sobelYFilePath = folderPath + "/" + sobelYFileName;
-    cv::imwrite(sobelYFilePath, sobelYImage);
-
-    // Perform Sobel operator in the xy-direction
-    cv::Mat sobelXYImage;
-    cv::Sobel(contrastImage, sobelXYImage, CV_8U, 1, 1);
-
-    // Generate the complete file name for the sobel y-image
-    std::string sobelXYFileName = fileNameWithoutExtension + "_sobel_xy.png";
-
-    // Save the sobel xy-image
-    std::string sobelXYFilePath = folderPath + "/" + sobelXYFileName;
-    cv::imwrite(sobelXYFilePath, sobelXYImage);
-
-    // Assign colors based on intensity values for Sobel x-image
-    cv::Mat sobelXColorImage;
-    cv::applyColorMap(sobelXImage, sobelXColorImage, cv::COLORMAP_HOT);
-
-    // Generate the complete file name for the colored Sobel x-image
-    std::string sobelXColorFileName = fileNameWithoutExtension + "_sobel_x_color.png";
-
-    // Save the colored Sobel x-image
-    std::string sobelXColorFilePath = folderPath + "/" + sobelXColorFileName;
-    cv::imwrite(sobelXColorFilePath, sobelXColorImage);
-
-    // Assign colors based on intensity values for Sobel y-image
-    cv::Mat sobelYColorImage;
-    cv::applyColorMap(sobelYImage, sobelYColorImage, cv::COLORMAP_HOT);
-
-    // Generate the complete file name for the colored Sobel y-image
-    std::string sobelYColorFileName = fileNameWithoutExtension + "_sobel_y_color.png";
-
-    // Save the colored Sobel y-image
-    std::string sobelYColorFilePath = folderPath + "/" + sobelYColorFileName;
-    cv::imwrite(sobelYColorFilePath, sobelYColorImage);
-
-    // Assign colors based on intensity values for Sobel xy-image
-    cv::Mat sobelXYColorImage;
-    cv::applyColorMap(sobelXYImage, sobelXYColorImage, cv::COLORMAP_HOT);
-
-    // Generate the complete file name for the colored Sobel xy-image
-    std::string sobelXYColorFileName = fileNameWithoutExtension + "_sobel_xy_color.png";
-
-    // Save the colored Sobel xy-image
-    std::string sobelXYColorFilePath = folderPath + "/" + sobelXYColorFileName;
-    cv::imwrite(sobelXYColorFilePath, sobelXYColorImage);
-
-    // Perform Laplacian operator
-    cv::Mat laplacianImage;
-    cv::Laplacian(contrastImage, laplacianImage, CV_8U);
-
-    // Generate the complete file name for the laplacian image
-    std::string laplacianFileName = fileNameWithoutExtension + "_laplacian.png";
-
-    // Save the laplacian image
-    std::string laplacianFilePath = folderPath + "/" + laplacianFileName;
-    cv::imwrite(laplacianFilePath, laplacianImage);
-
-    // Determine the maximum width and height among the images
-    int maxWidth = std::max(sobelXImage.cols, std::max(sobelYImage.cols, std::max(sobelXYImage.cols, std::max(laplacianImage.cols, std::max(cannyImage.cols, contrastImage.cols)))));
-    int maxHeight = std::max(sobelXImage.rows, std::max(sobelYImage.rows, std::max(sobelXYImage.rows, std::max(laplacianImage.rows, std::max(cannyImage.rows, contrastImage.rows)))));
 
 
-    // Create a canvas to hold the combined images and legends
-    int canvasWidth = 3 * maxWidth;
-    int canvasHeight = 2 * maxHeight + 100; // Add space for legends
-    cv::Mat canvas(canvasHeight, canvasWidth, CV_8UC1, cv::Scalar(255));
+    // Create a blank image for the profile visualization
+    cv::Mat profileImage(height, width, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
 
-    // Copy the Sobel x-image to the canvas
-    cv::Mat canvasROI_X = canvas(cv::Rect(0, 0, sobelXImage.cols, sobelXImage.rows));
-    sobelXImage.copyTo(canvasROI_X);
-    cv::putText(canvas, "Sobel X", cv::Point(450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+    // Determine the maximum and minimum values from normalizedPixelValues
+    double maxPixelValue = -std::numeric_limits<double>::infinity();
+    double minPixelValue = std::numeric_limits<double>::infinity();
+    for (int z = 0; z < width; ++z) {
+        double value = normalizedPixelValues[z][maxDepthIndices[z]];
+        if (value > maxPixelValue) maxPixelValue = value;
+        if (value < minPixelValue) minPixelValue = value;
+    }
+    double rangePixelValue = maxPixelValue - minPixelValue;
 
-    // Copy the Sobel y-image to the canvas
-    cv::Mat canvasROI_Y = canvas(cv::Rect(maxWidth, 0, sobelYImage.cols, sobelYImage.rows));
-    sobelYImage.copyTo(canvasROI_Y);
-    cv::putText(canvas, "Sobel Y", cv::Point(maxWidth + 450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+    // Draw the profile line
+    for (int z = 0; z < width - 1; ++z) {
+        int startY = height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height) / rangePixelValue;
+        int endY = height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height) / rangePixelValue;
+        cv::line(profileImage, cv::Point(z, startY), cv::Point(z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
+    }
 
-    // Copy the Sobel xy-image to the canvas
-    cv::Mat canvasROI_XY = canvas(cv::Rect(2 * maxWidth, 0, sobelXYImage.cols, sobelXYImage.rows));
-    sobelXYImage.copyTo(canvasROI_XY);
-    cv::putText(canvas, "Sobel XY", cv::Point(2 * maxWidth + 450, maxHeight + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+    // Save the profile visualization
+    std::string profilePath = folderPath + "/" + fileNameWithoutExtension + "_profile.png";
+    cv::imwrite(profilePath, profileImage);
 
-    // Copy the laplacian image to the canvas
-    cv::Mat canvasROI_lap = canvas(cv::Rect(0, maxHeight + 100, laplacianImage.cols, laplacianImage.rows));
-    laplacianImage.copyTo(canvasROI_lap);
-    cv::putText(canvas, "Laplacian", cv::Point(450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
-    // Copy the Canny image to the canvas
-    cv::Mat canvasROI_canny = canvas(cv::Rect(maxWidth, maxHeight + 100, cannyImage.cols, cannyImage.rows));
-    cannyImage.copyTo(canvasROI_canny);
-    cv::putText(canvas, "Canny", cv::Point(maxWidth + 450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
-    // Copy the Contrast image to the canvas
-    cv::Mat canvasROI_contrast = canvas(cv::Rect(2 * maxWidth, maxHeight + 100, contrastImage.cols, contrastImage.rows));
-    contrastImage.copyTo(canvasROI_contrast);
-    cv::putText(canvas, "Contrast", cv::Point(2 * maxWidth + 450, maxHeight + 70), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
 
-    // Generate the complete file name for the combined image
-    std::string combinedFileName = fileNameWithoutExtension + "_combined.png";
+    for(int z = 0; z < width; ++z) std::cout << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
+    
+    std::string filePath = folderPath + "/" + fileNameWithoutExtension + "_values.txt";
+    std::ofstream outFile(filePath);
 
-    // Save the combined image
-    std::string combinedFilePath = folderPath + "/" + combinedFileName;
-    cv::imwrite(combinedFilePath, canvas);
+    for(int z = 0; z < width; ++z) {
+        outFile << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
+    }
+
+    outFile.close();
+
+    // Create graph visualization with additional space for axis labels
+    cv::Mat graphImage(height + 100, width, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
+
+    // Draw the same profile line
+    for (int z = 0; z < width - 1; ++z) {
+        int startY = height - 1 - ((normalizedPixelValues[z][maxDepthIndices[z]] - minPixelValue) * height) / rangePixelValue;
+        int endY = height - 1 - ((normalizedPixelValues[z + 1][maxDepthIndices[z + 1]] - minPixelValue) * height) / rangePixelValue;
+        cv::line(graphImage, cv::Point(z, startY), cv::Point(z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
+    }
+
+    // Draw axis lines
+    cv::line(graphImage, cv::Point(0, height), cv::Point(width, height), cv::Scalar(0, 0, 0), 2);
+    cv::line(graphImage, cv::Point(0, 0), cv::Point(0, height), cv::Scalar(0, 0, 0), 2);
+
+    // Add axis labels
+    cv::putText(graphImage, "z (index)", cv::Point(width / 2, height + 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
+    cv::putText(graphImage, "y depth", cv::Point(10, height / 2), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
+
+    // Save the graph visualization
+    std::string graphPath = folderPath + "/" + fileNameWithoutExtension + "_graph.png";
+    cv::imwrite(graphPath, graphImage);
+
+    
 
 }
+
+
 
 
 

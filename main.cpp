@@ -9,7 +9,7 @@
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0004_piri.obj";
+    std::string filePath = "./data/processed_data/0003_maicon.obj";
 
     // Extract the file name without extension
     std::filesystem::path path(filePath);
@@ -207,22 +207,27 @@ int main() {
     std::vector<int> maxDepthIndices(width, 0);
 
     // Iterate over each row of the depthValues array
-    for (int x = 0; x < width; ++x) {
+    for (int z = 0; z < width; ++z) {
         float maxDepth = std::numeric_limits<float>::lowest();
         int maxDepthIndex = 0;
 
-        for (int z = 0; z < height; ++z) {
+        for (int x = 0; x < height; ++x) {
             // Check if the current depth value is greater than the maximum depth
-            if (depthValues[x][z] > maxDepth) {
-                maxDepth = depthValues[x][z];
-                maxDepthIndex = z;
+            if (normalizedPixelValues[z][x] > maxDepth) {
+                maxDepth = normalizedPixelValues[z][x];
+                maxDepthIndex = x;
             }
         }
 
         // Store the pixel index with maximum depth value for the current row
-        maxDepthIndices[x] = maxDepthIndex;
+        maxDepthIndices[z] = maxDepthIndex;
     }
 
-    plotPixelImage(normalizedPixelValues, fileNameWithoutExtension);
+    for (int i = 0; i < maxDepthIndices.size(); ++i) {
+    std::cout << "Row " << i << ": Maximum depth at index = " << maxDepthIndices[i] << std::endl;
+    }
+
+
+    plotPixelImage(normalizedPixelValues, maxDepthIndices, fileNameWithoutExtension);
     return 0;
 }
