@@ -9,7 +9,7 @@
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0003_maicon.obj";
+    std::string filePath = "./data/processed_data/0001_fred.obj";
 
     // Extract the file name without extension
     std::filesystem::path path(filePath);
@@ -19,63 +19,8 @@ int main() {
     std::vector<Vec3f> vertices;
     std::vector<Face> faces;
 
-    
     // Read the OBJ file
     readObjFile(filePath, vertices, faces);
-
-    /*
-    std::cout << "Number of faces: " << createfaces.size() << std::endl;
-
-    Mesh mesh;
-    createMesh(createvertices, createfaces, mesh);
-
-    CGAL::Polygon_mesh_processing::triangulate_faces(mesh);
-    //CGAL::Polygon_mesh_processing::triangulate_hole_polyline(mesh)
-
-    // Fill the holes in the mesh.
-    unsigned int nb_holes = 0;
-    for(auto h : halfedges(mesh)) {
-        if(is_border(h, mesh)) {
-            CGAL::Euler::fill_hole(h, mesh);
-            ++nb_holes;
-        }
-    }
-    std::cout << "Filled " << nb_holes << " holes.\n";
-
-    std::cout << "Number of faces after filling holes: " << mesh.num_faces() << std::endl;
-
-    // Triangulate again after filling holes.
-    // CGAL::Polygon_mesh_processing::triangulate_faces(mesh)
-
-    unsigned int nb_NOTTRIANGULATED = 0;
-    // Iterate over each face in the mesh
-    for(auto f : faces(mesh))
-    {
-        // Triangulate the face
-        bool success = CGAL::Polygon_mesh_processing::triangulate_face(f, mesh);
-
-        // Check if triangulation was successful
-        if (!success)
-        {
-            ++nb_NOTTRIANGULATED;
-            //std::cerr << "Failed to triangulate face " << f << std::endl;
-            //std::cout << "Filled " << nb_NOTTRIANGULATED << " holes.\n";
-        }
-    }
-
-
-    printFaces(mesh); // Print the faces
-
-    // Append new extension to base file name to create output file path
-    std::string outputFilePath = "/home/surya/cpp_project/Innosaddle/data/processed_data/" + fileNameWithoutExtension + "_.off";
-    writeMeshToFile(mesh, outputFilePath);
-
-    // Variables to store vertices and faces
-    std::vector<Vec3f> vertices;
-    std::vector<Face> faces;
-
-    // Read the OFF file
-    readOffFile(outputFilePath, vertices, faces);*/
 
     //// Parameters for orthographic projection
 
@@ -113,6 +58,8 @@ int main() {
 
     // Initialize a 2D array to store the depth values
     std::vector<std::vector<float>> depthValues(width, std::vector<float>(height, 0.0));
+    std::vector<std::vector<int>> vertexIndexMap(width, std::vector<int>(height, -1));
+
     int printCount = 0; // Add this before you start iterating over the faces
     // Iterate over each face
     for (const auto& face : faces) {
@@ -150,32 +97,31 @@ int main() {
                                 x + 0.5f, z + 0.5f, &c1, &c2)) {
                     // Pixel center is inside the triangle
                     // Interpolate the depth value using the barycentric coordinates
-                    //std::cout << c1 << " 2 " << std::endl;
                     float interpolatedDepth = interpolatef(projectedVertices[face.vertexIndices[0]].y,
                                                         projectedVertices[face.vertexIndices[1]].y,
                                                         projectedVertices[face.vertexIndices[2]].y,
                                                         c1, c2);
 
-                    /*// Add the following lines
-                    if (printCount < 100000000) { // Only print the first 10
-                        std::cout << "Interpolated depth for face " << printCount << ": " << interpolatedDepth << "\n";
-                        ++printCount;
-                    }*/
-                    // Store the depth value in the depth values array                    
+                    // Interpolate the 3D vertex using the barycentric coordinates
+                    Vec3f interpolatedVertex = interpolate3Df(vertices[face.vertexIndices[0]],
+                                                             vertices[face.vertexIndices[1]],
+                                                             vertices[face.vertexIndices[2]],
+                                                             c1, c2);
+
+                    // Add the interpolated vertex to a vertices list and get its index
+                    int contributingVertexIndex = vertices.size();
+                    vertices.push_back(interpolatedVertex);
+
+                    // Update the vertex index map
+                    vertexIndexMap[x][z] = contributingVertexIndex;
+
+                    // Store the depth value in the depth values array
                     depthValues[x][z] = interpolatedDepth;
                 }
             }
         }
+
     }
-
-
-
-    // Multiply each value in the depth values array by -1
-    /*for (auto& row : depthValues) {
-        for (float& value : row) {
-            value *= -1;
-        }
-    }*/
 
 
     std::vector<std::vector<float>> normalizedDepthValues = normalizeDepthValues(depthValues);
@@ -187,20 +133,6 @@ int main() {
             value *= 255;
         }
     }
-
-    /*for (auto& row : normalizedPixelValues) {
-    for (float& value : row) {
-        value = (value > 100) ? 255 : 0;
-    }
-    }*/
-
-
-    /*// After calculating normalizedPixelValues
-    for (int i = 0; i < normalizedPixelValues.size(); ++i) {
-        for (int j = 0; j < normalizedPixelValues[i].size(); ++j) {
-            std::cout << "Normalized pixel value at (" << i << ", " << j << "): " << normalizedPixelValues[i][j] << "\n";
-        }
-    }*/
 
 
     // Initialize an array to store the pixel indices of maximum depth values in each row
@@ -223,11 +155,29 @@ int main() {
         maxDepthIndices[z] = maxDepthIndex;
     }
 
+
+
+    //for (int i = 0; i < maxDepthIndices.size(); ++i) {
+    //    std::cout << "Row " << i << ": Maximum depth at index = " << maxDepthIndices[i] << std::endl;
+    //}
+
+
     for (int i = 0; i < maxDepthIndices.size(); ++i) {
-    std::cout << "Row " << i << ": Maximum depth at index = " << maxDepthIndices[i] << std::endl;
-    }
+    
+        int x = maxDepthIndices[i];
+        int z = i;
+        int vertexIndex = vertexIndexMap[z][x];
 
+        if (vertexIndex != -1) {
+            Vec3f original3DVertex = vertices[vertexIndex];
+            // You have the original 3D coordinates here!
+            // You can print them or use them as needed
+            //std::cout << "Original 3D Coordinates for Row " << i << ": (" 
+                     // << original3DVertex.x << ", " 
+                     // << original3DVertex.y << ", " 
+                     // << original3DVertex.z << ")\n";
+    }}
 
-    plotPixelImage(normalizedPixelValues, maxDepthIndices, fileNameWithoutExtension);
+    plotPixelImage(normalizedPixelValues, maxDepthIndices, fileNameWithoutExtension, vertices);
     return 0;
 }

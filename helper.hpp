@@ -11,10 +11,6 @@
 #include <ctime>
 #include <filesystem>
 #include <string>
-/*#include <CGAL/IO/read_off_points.h>
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/Surface_mesh.h>
-#include <CGAL/Polygon_mesh_processing/triangulate_faces.h>*/
 
 namespace fs = std::filesystem;
 
@@ -27,21 +23,6 @@ struct Face {
     std::vector<int> vertexIndices;
 };
 
-/*
-typedef CGAL::Simple_cartesian<double> K;
-typedef CGAL::Surface_mesh<K::Point_3> Mesh;
-typedef Mesh::Vertex_index Vertex_index;
-
-void printFaces(const Mesh& mesh) {
-    for(const auto& face : mesh.faces()) {
-        std::cout << "Face: ";
-        for(const auto& vertex : vertices_around_face(mesh.halfedge(face), mesh)) {
-            std::cout << vertex << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-*/
 
 void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std::vector<Face>& faces) {
     // Open the OBJ file
@@ -80,81 +61,6 @@ void readObjFile(const std::string& filePath, std::vector<Vec3f>& vertices, std:
 }
 
 #endif  // OBJ_PARSER_HPP
-
-
-/*void createMesh(const std::vector<Vec3f>& vertices, const std::vector<Face>& faces, Mesh& mesh) {
-    std::vector<Vertex_index> vertex_indices;
-
-    // Add vertices to the mesh
-    for (const Vec3f& vertex : vertices) {
-        vertex_indices.push_back(mesh.add_vertex(K::Point_3(vertex.x, vertex.y, vertex.z)));
-    }
-
-    // Add faces to the mesh
-    for (const Face& face : faces) {
-        std::vector<Vertex_index> face_indices;
-        for (int index : face.vertexIndices) {
-            face_indices.push_back(vertex_indices[index]);
-        }
-        mesh.add_face(face_indices);
-    }
-}
-
-void writeMeshToFile(const Mesh& mesh, const std::string& filePath) {
-    std::ofstream file(filePath, std::ios::out);
-    if (!file) {
-        std::cerr << "Could not open file for writing: " << filePath << std::endl;
-        return;
-    }
-
-    if (!CGAL::IO::write_OFF(file, mesh)) {
-        std::cerr << "Error writing to file: " << filePath << std::endl;
-    }
-}
-
-
-void readOffFile(const std::string& filePath, std::vector<Vec3f>& vertices, std::vector<Face>& faces) {
-    std::ifstream file(filePath);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return;
-    }
-
-    std::string line;
-    std::getline(file, line);  // Skip 'OFF' line
-
-    // Read number of vertices, faces, and edges
-    std::getline(file, line);
-    std::istringstream iss(line);
-    int numVertices, numFaces, numEdges;
-    iss >> numVertices >> numFaces >> numEdges;
-
-    // Read vertices
-    for (int i = 0; i < numVertices; i++) {
-        std::getline(file, line);
-        std::istringstream iss(line);
-        float x, y, z;
-        iss >> x >> y >> z;
-        vertices.emplace_back(x, y, z);
-    }
-
-    // Read faces
-    for (int i = 0; i < numFaces; i++) {
-        std::getline(file, line);
-        std::istringstream iss(line);
-        int numVerticesInFace;
-        iss >> numVerticesInFace;
-        Face face;
-        for (int j = 0; j < numVerticesInFace; j++) {
-            int vertexIndex;
-            iss >> vertexIndex;
-            face.vertexIndices.push_back(vertexIndex);
-        }
-        faces.push_back(face);
-    }
-}
-
-*/
 
 
 // MinMax function to get minimum and maximum values of a vector
@@ -240,20 +146,18 @@ float interpolatef(float depthP, float depthQ, float depthR, float c1, float c2)
     return interpolatedDepth;
 }
 
-/*// Function to find the non-zero minimum value in the depth values array
-float findNonZeroMin(const std::vector<std::vector<float>>& depthValues) {
-    float minDepth = std::numeric_limits<float>::max();
 
-    for (const auto& row : depthValues) {
-        for (float value : row) {
-            if (value != 0 && value < minDepth) {
-                minDepth = value;
-            }
-        }
-    }
+// tofind the 3D vertex that corresponds to each pixel by interpolating 
+// the 3D coordinates using the barycentric coordinates
+Vec3f interpolate3Df(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2, float c1, float c2) {
+    float c3 = 1.0f - c1 - c2;
+    float x = c1 * v0.x + c2 * v1.x + c3 * v2.x;
+    float y = c1 * v0.y + c2 * v1.y + c3 * v2.y;
+    float z = c1 * v0.z + c2 * v1.z + c3 * v2.z;
+    return Vec3f(x, y, z);
+}
 
-    return minDepth;
-}*/
+
 
 // Function to normalize the depth values array
 std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vector<float>>& depthValues) {
@@ -274,8 +178,6 @@ std::vector<std::vector<float>> normalizeDepthValues(const std::vector<std::vect
         }
     }
     
-    //std::cout << "Minimum depth value: " << minDepth << std::endl;
-    //std::cout << "Maximum depth value: " << maxDepth << std::endl;
 
     std::vector<std::vector<float>> normalizedDepthValues(width, std::vector<float>(height));
 
@@ -308,15 +210,42 @@ std::vector<std::pair<int, uchar>> getMaxPixelValuesAndIndicesInRows(const std::
     return maxPixelValuesAndIndices;
 }
 
+void printMaxMinVertices(const std::vector<std::pair<double, int>> &maxima,
+                         const std::vector<std::pair<double, int>> &minima,
+                         const std::vector<Vec3f> &vertices) {
 
-
-
-
-void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::vector<int>& maxDepthIndices, const std::string& fileNameWithoutExtension) {
+    // Logic for mapping the maxima/minima indices to the 3D vertices
+    // Adjust this part based on your actual mapping
     
+    std::cout << "Maxima vertices:\n";
+    for (const auto &max : maxima) {
+        int index = max.second; // Assuming the second element in pair is the index
+        if (index != -1 && index < vertices.size()) {
+            Vec3f original3DVertex = vertices[index];
+            std::cout << "Maximum at index " << index << ": (" 
+                      << original3DVertex.x << ", " 
+                      << original3DVertex.y << ", " 
+                      << original3DVertex.z << ")\n";
+        }
+    }
+
+    std::cout << "Minima vertices:\n";
+    for (const auto &min : minima) {
+        int index = min.second; // Assuming the second element in pair is the index
+        if (index != -1 && index < vertices.size()) {
+            Vec3f original3DVertex = vertices[index];
+            std::cout << "Minimum at index " << index << ": (" 
+                      << original3DVertex.x << ", " 
+                      << original3DVertex.y << ", " 
+                      << original3DVertex.z << ")\n";
+        }
+    }
+}
 
 
 
+void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::vector<int>& maxDepthIndices, const std::string& fileNameWithoutExtension, const std::vector<Vec3f>& vertices) {
+    
     // Image dimensions
     int width = normalizedPixelValues.size();
     int height = normalizedPixelValues[0].size();
@@ -375,10 +304,7 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     // Save the original pixel image
     cv::imwrite(folderPath + "/" + fileNameWithoutExtension + ".png", pixelImage);
 
-
-
-
-    for(int z = 0; z < width; ++z) std::cout << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
+    // for(int z = 0; z < width; ++z) std::cout << "Pixel value at z=" << z << " and maxDepthIndices[" << z << "]=" << maxDepthIndices[z] << ": " << normalizedPixelValues[z][maxDepthIndices[z]] << std::endl;
     
     std::string filePath = folderPath + "/" + fileNameWithoutExtension + "_values.txt";
     std::ofstream outFile(filePath);
@@ -390,7 +316,7 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     outFile.close();
 
 
-         // Create a blank image for the profile visualization
+    // Create a blank image for the profile visualization
     cv::Mat profileImage(height, width, CV_8UC3, cv::Scalar(255, 255, 255)); // White background
 
     // Determine the maximum and minimum values from normalizedPixelValues
@@ -401,6 +327,13 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
         if (value > maxPixelValue) maxPixelValue = value;
         if (value < minPixelValue) minPixelValue = value;
     }
+
+
+    std::vector<double> profile(width);
+    for (int z = 0; z < width; ++z) {
+        profile[z] = normalizedPixelValues[z][maxDepthIndices[z]];
+    }
+
     double rangePixelValue = maxPixelValue - minPixelValue;
 
     double scalingFactor = 0.8; // You can adjust this value as needed
@@ -412,14 +345,9 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
         cv::line(profileImage, cv::Point(z, startY), cv::Point(z + 1, endY), cv::Scalar(0, 0, 0), 1); // Black line
     }
 
-
-
-
     // Save the profile visualization
     std::string profilePath = folderPath + "/" + fileNameWithoutExtension + "_profile.png";
     cv::imwrite(profilePath, profileImage);
-
-
 
     // Increase padding for the graph
     int graphPaddingTop = 50;
@@ -458,25 +386,54 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
     cv::putText(graphImage, "z (index)", cv::Point(graphPaddingLeft + width / 2, graphPaddingTop + height + 50), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
     cv::putText(graphImage, "y depth", cv::Point(10, graphPaddingTop + height / 2), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 0), 2);
 
+
+    // Compute first and second derivatives
+    std::vector<double> firstDerivative(width - 1);
+    std::vector<double> secondDerivative(width - 2);
+
+    double threshold = 0.009; // Threshold for significant second derivatives
+
+    // Apply Gaussian smoothing to the profile
+    cv::Mat profileMat(1, profile.size(), CV_64F, profile.data());
+    cv::GaussianBlur(profileMat, profileMat, cv::Size(21, 1), 10.0, 10.0);
+    //cv::medianBlur(profileMat, profileMat, 21); 
+    std::vector<double> smoothed_profile(profile.size());
+    profileMat.copyTo(smoothed_profile);
+
+
+
+    // Containers to hold local maxima and minima
+    std::vector<std::pair<double, int>> maxima, minima;
+
+    for (int z = 0; z < width - 1; ++z) {
+        firstDerivative[z] = smoothed_profile[z + 1] - smoothed_profile[z]; // Use smoothed_profile
+    }
+
+    for (int z = 0; z < width - 2; ++z) {
+        secondDerivative[z] = firstDerivative[z + 1] - firstDerivative[z];
+    }
+
+    for (int z = 1; z < width - 2; ++z) {
+        if (firstDerivative[z - 1] > 0 && firstDerivative[z] <= 0 && std::abs(secondDerivative[z - 1]) > threshold) {
+            maxima.push_back(std::make_pair(smoothed_profile[z], z)); // Use smoothed_profile
+            int y = graphPaddingTop + height - 1 - ((smoothed_profile[z] - minPixelValue) * height * scalingFactor) / rangePixelValue;
+            //std::cout << "Maximum at " << z << std::endl;
+            cv::circle(graphImage, cv::Point(graphPaddingLeft + z, y), 5, cv::Scalar(0, 255, 0), -1); // Draw green circle
+        }
+        if (firstDerivative[z - 1] < 0 && firstDerivative[z] >= 0 && std::abs(secondDerivative[z - 1]) > threshold) {
+            minima.push_back(std::make_pair(smoothed_profile[z], z)); // Use smoothed_profile
+            int y = graphPaddingTop + height - 1 - ((smoothed_profile[z] - minPixelValue) * height * scalingFactor) / rangePixelValue;
+            //std::cout << "Minimum at " << z << std::endl;
+            cv::circle(graphImage, cv::Point(graphPaddingLeft + z, y), 5, cv::Scalar(0, 0, 255), -1); // Draw red circle
+        }
+    }
+
+    // Print the maxima and minima vertices
+    printMaxMinVertices(maxima, minima, vertices);
+
     // Save the graph visualization
     std::string graphPath = folderPath + "/" + fileNameWithoutExtension + "_graph.png";
     cv::imwrite(graphPath, graphImage);
 
-    // ...
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
