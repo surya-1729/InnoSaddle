@@ -30,6 +30,7 @@ int main() {
         firstColumn.push_back(row.x);
     }
 
+
     // Find the minimum and maximum of the first column
     std::pair<float, float> minMax = findMinMax(firstColumn);
     float left = minMax.first;
@@ -180,4 +181,42 @@ int main() {
 
     plotPixelImage(normalizedPixelValues, maxDepthIndices, fileNameWithoutExtension, vertices);
     return 0;
+
+/*
+    std::vector<double> z_values, y_values;
+    for (int z = 0; z < maxDepthIndices.size(); z++) {
+        z_values.push_back(static_cast<double>(z));
+        y_values.push_back(normalizedPixelValues[z][maxDepthIndices[z]]);
+    }
+    
+    Eigen::VectorXd x_eigen(z_values.size());
+    Eigen::VectorXd y_eigen(y_values.size());
+
+    for (int i = 0; i < z_values.size(); i++) {
+        x_eigen[i] = z_values[i];
+        y_eigen[i] = y_values[i];
+    }
+
+
+    //Eigen::VectorXd coeffs = fitPolynomial(x_eigen, y_eigen, 5);
+    //Eigen::VectorXd derivative = computeDerivative(coeffs);
+
+    std::vector<double> local_extrema = localExtrema(derivative);
+    std::vector<double> maxima, minima;
+
+    for(double z : local_extrema) {
+        double y_second_derivative = evaluatePolynomial(computeDerivative(derivative), z);
+        if (y_second_derivative > 0) {
+            minima.push_back(z);
+        } else if (y_second_derivative < 0) {
+            maxima.push_back(z);
+        }
+    }
+*/
+    //saveResults(coeffs, maxima, minima);
+
+
+
+
+
 }

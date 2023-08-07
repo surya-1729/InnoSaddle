@@ -11,6 +11,8 @@
 #include <ctime>
 #include <filesystem>
 #include <string>
+//#include <Eigen/Dense> 
+
 
 namespace fs = std::filesystem;
 
@@ -241,8 +243,98 @@ void printMaxMinVertices(const std::vector<std::pair<double, int>> &maxima,
         }
     }
 }
+/*
+Eigen::VectorXd fitPolynomial(const Eigen::VectorXd &x_values, const Eigen::VectorXd &y_values, int degree) {
+    Eigen::MatrixXd A(x_values.size(), degree + 1);
+    for (int i = 0; i < x_values.size(); i++) {
+        for (int j = 0; j <= degree; j++) {
+            A(i, j) = std::pow(x_values[i], degree - j);
+        }
+    }
+    Eigen::VectorXd coeffs = A.colPivHouseholderQr().solve(y_values);
+    return coeffs;
+}
 
 
+
+Eigen::VectorXd computeDerivative(const Eigen::VectorXd &coeffs) {
+    int degree = coeffs.size() - 1;
+    Eigen::VectorXd derivative(degree);
+    for (int i = 0; i < degree; i++) {
+        derivative[i] = coeffs[i] * (degree - i);
+    }
+    return derivative;
+}
+
+
+
+
+void saveResults(const Eigen::VectorXd& coeffs, const std::vector<double>& maxPoints, const std::vector<double>& minPoints) {
+    std::ofstream file("results.txt");
+    file << "Curve coefficients: " << coeffs.transpose() << "\n";
+    file << "Local maxima: ";
+    for (const auto& point : maxPoints) file << point << " ";
+    file << "\nLocal minima: ";
+    for (const auto& point : minPoints) file << point << " ";
+    file.close();
+}
+
+double evaluatePolynomial(const Eigen::VectorXd& coeffs, double x) {
+    double result = 0.0;
+    for (int i = 0; i < coeffs.size(); i++) {
+        result += coeffs(i) * std::pow(x, coeffs.size() - 1 - i);
+    }
+    return result;
+}
+
+double newtonRaphson(const Eigen::VectorXd& coeffs, double start, double tol = 1e-6, int maxIter = 1000) {
+    double x = start;
+    for (int iter = 0; iter < maxIter; iter++) {
+        double f = evaluatePolynomial(coeffs, x);
+        double f_prime = evaluatePolynomial(computeDerivative(coeffs), x);
+
+        if (std::abs(f_prime) < tol) {
+            std::cerr << "Derivative near zero!" << std::endl;
+            return x;
+        }
+
+        double x_next = x - f / f_prime;
+        if (std::abs(x_next - x) < tol) return x_next;
+
+        x = x_next;
+    }
+    
+    std::cerr << "Max iterations reached!" << std::endl;
+    return x;
+}
+
+std::vector<double> localExtrema(const Eigen::VectorXd& coeffs) {
+    Eigen::VectorXd derivative = computeDerivative(coeffs);
+    std::vector<double> extrema;
+
+    // Define starting points or use an algorithm to select them.
+    std::vector<double> startingPoints = {
+    int numberOfStartingPoints = 10; // Or whatever number you want
+    double startingPointMin = 0; // Adjust as needed
+    double startingPointMax = maxDepthIndices.size() - 1; // Adjust as needed
+    std::vector<double> startingPoints(numberOfStartingPoints);
+    for (int i = 0; i < numberOfStartingPoints; i++) {
+        startingPoints[i] = startingPointMin + i * (startingPointMax - startingPointMin) / (numberOfStartingPoints - 1);
+    }
+
+    };
+
+    for (double start : startingPoints) {
+        double extremum = newtonRaphson(derivative, start);
+        if (std::find(extrema.begin(), extrema.end(), extremum) == extrema.end()) {
+            extrema.push_back(extremum);
+        }
+    }
+
+    return extrema;
+}
+
+*/
 
 void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues, const std::vector<int>& maxDepthIndices, const std::string& fileNameWithoutExtension, const std::vector<Vec3f>& vertices) {
     
