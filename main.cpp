@@ -9,7 +9,7 @@
 int main() {
 
     // Path to the OBJ file
-    std::string filePath = "./data/processed_data/0002_letti.obj";
+    std::string filePath = "./data/processed_data/0005_vanille.obj";
 
     // Extract the file name without extension
     std::filesystem::path path(filePath);

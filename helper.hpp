@@ -511,15 +511,24 @@ void plotPixelImage(const std::vector<std::vector<float>>& normalizedPixelValues
             int y = graphPaddingTop + height - 1 - ((smoothed_profile[z] - minPixelValue) * height * scalingFactor) / rangePixelValue;
             //std::cout << "Maximum at " << z << std::endl;
             cv::circle(graphImage, cv::Point(graphPaddingLeft + z, y), 5, cv::Scalar(0, 255, 0), -1); // Draw green circle
+            // Add a label next to the circle
+            // Add a label next to the circle (in red color, rotated vertically)
+            std::string label = "Max at " + std::to_string(z);
+            cv::putText(graphImage, label, cv::Point(graphPaddingLeft + z + 5, y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1, cv::LINE_AA, true);
+    
         }
         if (firstDerivative[z - 1] < 0 && firstDerivative[z] >= 0 && std::abs(secondDerivative[z - 1]) > threshold) {
             minima.push_back(std::make_pair(smoothed_profile[z], z)); // Use smoothed_profile
             int y = graphPaddingTop + height - 1 - ((smoothed_profile[z] - minPixelValue) * height * scalingFactor) / rangePixelValue;
             //std::cout << "Minimum at " << z << std::endl;
             cv::circle(graphImage, cv::Point(graphPaddingLeft + z, y), 5, cv::Scalar(0, 0, 255), -1); // Draw red circle
+            // Add a label next to the circle
+            // Add a label next to the circle (in green color, rotated vertically)
+            std::string label = "Min at " + std::to_string(z);
+            cv::putText(graphImage, label, cv::Point(graphPaddingLeft + z + 5, y), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1, cv::LINE_AA, true);
         }
+    
     }
-
     // Print the maxima and minima vertices
     printMaxMinVertices(maxima, minima, vertices);
 
